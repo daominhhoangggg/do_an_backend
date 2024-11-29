@@ -15,7 +15,13 @@ router.get(
   adminController.getHistoryDetail
 );
 
-router.put('/users/update/', isAuth(['Admin']), adminController.putUpdateUser);
+router.put('/users/update', isAuth(['Admin']), adminController.putUpdateUser);
+
+router.delete(
+  '/users/delete/:idUser',
+  isAuth(['Admin']),
+  adminController.deleteUser
+);
 
 router.post('/products/add', isAuth(['Admin']));
 

@@ -59,12 +59,13 @@ exports.getHistoryDetail = async (req, res, next) => {
 };
 
 exports.putUpdateUser = async (req, res, next) => {
-  const idUser = req.query.idUser;
-  const fullname = req.query.fullname;
-  const phone = req.query.phone;
-  const email = req.query.email;
-  const password = req.query.password;
-  const role = req.query.role;
+  const { idUser, fullname, phone, email, password, role } = req.body;
+
+  if (!idUser || !fullname || !email || !role) {
+    const error = new Error('Missing required fields.');
+    error.statusCode = 400;
+    return next(error);
+  }
 
   try {
     const user = await User.findById(idUser);
@@ -72,20 +73,43 @@ exports.putUpdateUser = async (req, res, next) => {
       const error = new Error('Could not find user.');
       err.statusCode = 404;
       throw error;
-    }
+    } else {
+      if (password) {
+        const hashedPw = await bcrypt.hash(password, 12);
+        user.password = hashedPw;
+      }
+      user.fullname = fullname;
+      user.phone = phone;
+      user.email = email;
+      user.role = role;
+      const result = await user.save();
 
-    if (password) {
-      const hashedPw = await bcrypt.hash(password, 12);
-      user.password = hashedPw;
+      res.status(200).json(result);
     }
-    user._id = idUser;
-    user.fullname = fullname;
-    user.phone = phone;
-    user.email = email;
-    user.role = role;
-    const result = await user.save();
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
 
-    res.status(200).json(result);
+exports.deleteUser = async (req, res, next) => {
+  const idUser = req.params.idUser;
+
+  if (!idUser) {
+    const error = new Error('User ID is required.');
+    error.statusCode = 400;
+    return next(error);
+  } else {
+  }
+
+  try {
+    await User.findByIdAndDelete(idUser);
+    res.status(200).json({
+      message: 'User deleted successfully.',
+      userId: idUser,
+    });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

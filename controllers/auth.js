@@ -85,7 +85,8 @@ exports.postLogin = async (req, res, next) => {
           {
             email: user.email,
             userId: user._id.toString(),
-            role: user.role,
+            // role: user.role,
+            fullname: user.fullname,
           },
           'somesupersecretsecret',
           { expiresIn: '1h' }
