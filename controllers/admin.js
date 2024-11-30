@@ -19,7 +19,7 @@ exports.getHistoryAPI = async (req, res, next) => {
   }
 };
 
-exports.getAll = async (req, res, next) => {
+exports.getAllHistory = async (req, res, next) => {
   try {
     const allOrder = await Order.find();
     res.status(200).json(allOrder);
@@ -50,6 +50,18 @@ exports.getHistoryDetail = async (req, res, next) => {
     }));
 
     res.status(200).json({ ...order._doc, cart: detailCart });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.getAllData = async (req, res, next) => {
+  try {
+    const allUser = await User.find();
+    res.status(200).json(allUser);
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
