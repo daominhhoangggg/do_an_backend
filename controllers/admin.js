@@ -1,4 +1,5 @@
 const User = require('../models/user');
+const Product = require('../models/product');
 const Order = require('../models/order');
 const bcrypt = require('bcryptjs');
 
@@ -121,6 +122,57 @@ exports.deleteUser = async (req, res, next) => {
     res.status(200).json({
       message: 'User deleted successfully.',
       userId: idUser,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.postAddProduct = async (req, res, next) => {
+  const data = req.body;
+  console.log(data);
+  console.log(req.file);
+
+  try {
+    // const product = new Product({
+    //   category: data.category,
+    //   img1: data.img1,
+    //   img2: data.img2,
+    //   img3: data.img3,
+    //   long_desc: data.long_desc,
+    //   name: data.name,
+    //   price: data.price,
+    //   short_desc: data.short_desc,
+    // });
+    // const result = await product.save();
+    res.status(201).json({ message: 'Product added.' });
+    //  productId: result._id
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.deleteProduct = async (req, res, next) => {
+  const productId = req.params.productId;
+
+  if (!productId) {
+    const error = new Error('Product ID is required.');
+    error.statusCode = 400;
+    return next(error);
+  } else {
+  }
+
+  try {
+    await Product.findByIdAndDelete(productId);
+    res.status(200).json({
+      message: 'Product deleted successfully.',
+      userId: productId,
     });
   } catch (err) {
     if (!err.statusCode) {
