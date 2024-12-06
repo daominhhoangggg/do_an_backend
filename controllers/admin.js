@@ -2,6 +2,8 @@ const User = require('../models/user');
 const Product = require('../models/product');
 const Order = require('../models/order');
 const bcrypt = require('bcryptjs');
+const upload = require('../multer-config');
+const imagekit = require('../util/imagekit');
 
 exports.getHistoryAPI = async (req, res, next) => {
   const idUser = req.query.idUser;
@@ -132,24 +134,37 @@ exports.deleteUser = async (req, res, next) => {
 };
 
 exports.postAddProduct = async (req, res, next) => {
-  const data = req.body;
-  console.log(data);
-  console.log(req.file);
-
   try {
-    // const product = new Product({
-    //   category: data.category,
-    //   img1: data.img1,
-    //   img2: data.img2,
-    //   img3: data.img3,
-    //   long_desc: data.long_desc,
-    //   name: data.name,
-    //   price: data.price,
-    //   short_desc: data.short_desc,
-    // });
-    // const result = await product.save();
+    const { name, price, category, short_desc, long_desc } = req.body;
+    const files = req.files;
+
+    const upload = async file => {
+      const suffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+      const fileName = suffix + '-' + file.originalname;
+      const response = await imagekit.upload({
+        file: file.buffer,
+        fileName,
+        // folder: '/products',
+      });
+      return response.url;
+    };
+
+    const img1 = files[0] ? await upload(files[0]) : '';
+    const img2 = files[1] ? await upload(files[1]) : '';
+    const img3 = files[2] ? await upload(files[2]) : '';
+
+    const product = new Product({
+      category,
+      img1,
+      img2,
+      img3,
+      long_desc,
+      name,
+      price,
+      short_desc,
+    });
+    const result = await product.save();
     res.status(201).json({ message: 'Product added.' });
-    //  productId: result._id
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

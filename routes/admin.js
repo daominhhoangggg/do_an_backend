@@ -2,6 +2,7 @@ const express = require('express');
 
 const adminController = require('../controllers/admin');
 const isAuth = require('../middleware/is-auth');
+const upload = require('../multer-config');
 
 const router = express.Router();
 
@@ -25,7 +26,12 @@ router.delete(
   adminController.deleteUser
 );
 
-router.post('/products/add', isAuth(['Admin']), adminController.postAddProduct);
+router.post(
+  '/products/add',
+  isAuth(['Admin']),
+  upload.array('files', 5),
+  adminController.postAddProduct
+);
 
 router.delete(
   '/product/delete/:productId',
