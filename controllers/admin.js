@@ -164,7 +164,7 @@ exports.postAddProduct = async (req, res, next) => {
       short_desc,
     });
     const result = await product.save();
-    res.status(201).json({ message: 'Product added.' });
+    res.status(201).json({ message: 'Thêm sản phẩm thành công.' });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -186,8 +186,8 @@ exports.deleteProduct = async (req, res, next) => {
   try {
     await Product.findByIdAndDelete(productId);
     res.status(200).json({
-      message: 'Product deleted successfully.',
-      userId: productId,
+      message: 'Xóa sản phẩm thành công.',
+      idProduct: productId,
     });
   } catch (err) {
     if (!err.statusCode) {

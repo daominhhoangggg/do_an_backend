@@ -66,11 +66,13 @@ exports.getPagination = async (req, res, next) => {
   }
 
   try {
+    const totalResult = await Product.countDocuments(searchQuery);
+
     const products = await Product.find(searchQuery)
       .skip((query.page - 1) * query.count)
       .limit(query.count);
 
-    res.status(200).json(products);
+    res.status(200).json({ products, totalResult });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

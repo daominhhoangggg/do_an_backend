@@ -34,7 +34,7 @@ router.post(
 );
 
 router.delete(
-  '/product/delete/:productId',
+  '/products/delete/:productId',
   isAuth(['Admin']),
   adminController.deleteProduct
 );
