@@ -34,7 +34,7 @@ app.use(cors());
 app.use(helmet());
 app.use(compression());
 app.use(morgan('combined', { stream: accessLogStream }));
-
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
@@ -53,11 +53,11 @@ app.use(authRoutes);
 app.use(shopRoutes);
 
 app.use((error, req, res, next) => {
-  console.log(error);
+  // console.log(error);
   const status = error.statusCode || 500;
   const message = error.message;
   const data = error.data;
-  res.status(status).json({ message: message, data: data });
+  res.json({ message: message, data: data, status: status });
 });
 
 mongoose
@@ -67,5 +67,6 @@ mongoose
     //   .createServer({ key: privateKey, cert: certificate }, app)
     //   .listen(process.env.PORT || 5000);
     app.listen(process.env.PORT || 5000);
+    // console.log(PORT);
   })
   .catch(err => console.log(err));

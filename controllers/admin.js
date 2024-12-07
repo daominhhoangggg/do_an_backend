@@ -158,26 +158,49 @@ exports.deleteUser = async (req, res, next) => {
 };
 
 exports.postAddProduct = async (req, res, next) => {
+
   try {
     const { name, price, category, short_desc, long_desc } = req.body;
     const files = req.files;
-
+    // console.log("files:", files);
     const uploadPromises = files.map(file => uploadToCloudinary(file.buffer));
     const img = await Promise.allSettled(uploadPromises);
+    if (!img || img.length === 0) {
+      throw new Error("At least one image is required.");
+    }
+    img.forEach((image, index) => {
+      console.log("123", image.value, index);
+    })
 
-    const product = new Product({
+    // const product = new Product({
+    //   category,
+    //   img1: img[0].value,
+    //   img2: img[1].value,
+    //   img3: img[2].value,
+    //   long_desc,
+    //   name,
+    //   price,
+    //   short_desc,
+    // });
+    const productData = {
       category,
-      img1: img[0].value,
-      img2: img[1].value,
-      img3: img[2].value,
       long_desc,
       name,
       price,
       short_desc,
+    };
+    img.forEach((image, index) => {
+      productData[`img${index + 1}`] = image.value; // Tạo thuộc tính img1, img2, ...
     });
-    const result = await product.save();
+    const product = new Product(productData);
+    await product.save();
+    // res.json({
+    //   message: 'Thêm sản phẩm thành công.',
+    //   status: 201
+    // });
     res.status(201).json({
       message: 'Thêm sản phẩm thành công.',
+      // productId: product._id,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -203,7 +226,8 @@ exports.deleteProduct = async (req, res, next) => {
     const extractPublicId = url => {
       const parts = url.split('/');
       const fileName = parts[parts.length - 1]; // Lấy phần cuối cùng của URL (tên file)
-      return fileName.split('.')[0]; // Bỏ đuôi file (.jpg, .png)
+      const publicId = fileName.split('.')[0]; // Bỏ đuôi file (.jpg, .png)
+      return 'products/' + publicId;
     };
 
     const deleteImagePromises = [];

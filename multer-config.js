@@ -5,7 +5,7 @@ const storage = multer.memoryStorage();
 
 // Lọc lấy file ảnh
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
+  if (file?.mimetype?.startsWith('image/')) {
     cb(null, true);
   } else {
     cb(null, false);
