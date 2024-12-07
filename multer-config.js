@@ -1,7 +1,9 @@
 const multer = require('multer');
 
-const fileStorage = multer.memoryStorage();
+// Lưu vào bộ nhớ RAM
+const storage = multer.memoryStorage();
 
+// Lọc lấy file ảnh
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
@@ -10,6 +12,6 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ storage: fileStorage, fileFilter: fileFilter });
+const upload = multer({ storage: storage, fileFilter: fileFilter });
 
 module.exports = upload;

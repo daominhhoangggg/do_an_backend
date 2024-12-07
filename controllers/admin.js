@@ -2,8 +2,32 @@ const User = require('../models/user');
 const Product = require('../models/product');
 const Order = require('../models/order');
 const bcrypt = require('bcryptjs');
-const upload = require('../multer-config');
-const imagekit = require('../util/imagekit');
+const cloudinary = require('cloudinary').v2;
+const streamifier = require('streamifier');
+
+// Cấu hình Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API,
+  api_secret: process.env.CLOUDINARY_SECRET,
+  secure: true,
+});
+
+// Hàm upload file trực tiếp lên Cloudinary qua stream
+const uploadToCloudinary = fileBuffer => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: 'products' }, // Thư mục trên Cloudinary
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url); // trả về URL của ảnh
+      }
+    );
+
+    // Tạo stream từ buffer và upload
+    streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+  });
+};
 
 exports.getHistoryAPI = async (req, res, next) => {
   const idUser = req.query.idUser;
@@ -138,33 +162,23 @@ exports.postAddProduct = async (req, res, next) => {
     const { name, price, category, short_desc, long_desc } = req.body;
     const files = req.files;
 
-    const upload = async file => {
-      const suffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const fileName = suffix + '-' + file.originalname;
-      const response = await imagekit.upload({
-        file: file.buffer,
-        fileName,
-        // folder: '/products',
-      });
-      return response.url;
-    };
-
-    const img1 = files[0] ? await upload(files[0]) : '';
-    const img2 = files[1] ? await upload(files[1]) : '';
-    const img3 = files[2] ? await upload(files[2]) : '';
+    const uploadPromises = files.map(file => uploadToCloudinary(file.buffer));
+    const img = await Promise.allSettled(uploadPromises);
 
     const product = new Product({
       category,
-      img1,
-      img2,
-      img3,
+      img1: img[0].value,
+      img2: img[1].value,
+      img3: img[2].value,
       long_desc,
       name,
       price,
       short_desc,
     });
     const result = await product.save();
-    res.status(201).json({ message: 'Thêm sản phẩm thành công.' });
+    res.status(201).json({
+      message: 'Thêm sản phẩm thành công.',
+    });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -184,7 +198,28 @@ exports.deleteProduct = async (req, res, next) => {
   }
 
   try {
+    const product = await Product.findById(productId);
+
+    const extractPublicId = url => {
+      const parts = url.split('/');
+      const fileName = parts[parts.length - 1]; // Lấy phần cuối cùng của URL (tên file)
+      return fileName.split('.')[0]; // Bỏ đuôi file (.jpg, .png)
+    };
+
+    const deleteImagePromises = [];
+    deleteImagePromises.push(
+      cloudinary.uploader.destroy(extractPublicId(product.img1))
+    );
+    deleteImagePromises.push(
+      cloudinary.uploader.destroy(extractPublicId(product.img2))
+    );
+    deleteImagePromises.push(
+      cloudinary.uploader.destroy(extractPublicId(product.img3))
+    );
+
+    await Promise.all(deleteImagePromises);
     await Product.findByIdAndDelete(productId);
+
     res.status(200).json({
       message: 'Xóa sản phẩm thành công.',
       idProduct: productId,

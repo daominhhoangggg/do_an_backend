@@ -95,8 +95,8 @@ exports.postLogin = async (req, res, next) => {
             userId: user._id.toString(),
             fullname: user.fullname,
           },
-          'somesupersecretsecret',
-          { expiresIn: '1h' }
+          'somesupersecretsecret'
+          // { expiresIn: '1h' }
         );
 
         res.status(200).json({ user: user, token: token });
