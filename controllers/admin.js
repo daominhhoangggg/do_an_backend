@@ -162,14 +162,40 @@ exports.postAddProduct = async (req, res, next) => {
     const { name, price, category, short_desc, long_desc } = req.body;
     const files = req.files;
 
+    if (
+      !name ||
+      !price ||
+      !category ||
+      !short_desc ||
+      !long_desc ||
+      !files ||
+      files.length < 3
+    ) {
+      const error = new Error('Thiếu dữ liệu hoặc không đủ file hình ảnh.');
+      error.statusCode = 400;
+      throw error;
+    }
+    // Tải ảnh lên Cloudinary
     const uploadPromises = files.map(file => uploadToCloudinary(file.buffer));
-    const img = await Promise.allSettled(uploadPromises);
+    const img = (await Promise.allSettled(uploadPromises)).map(
+      result => result.value
+    );
+
+    // Đảm bảo có ít nhất 3 ảnh thành công
+    if (img.includes(null)) {
+      const error = new Error('Tải lên ảnh thất bại.');
+      error.statusCode = 500;
+      throw error;
+    }
+
+    const uploaded = {
+      img1: img[0] || '',
+      img2: img[1] || '',
+      img3: img[2] || '',
+    };
 
     const product = new Product({
       category,
-      img1: img[0].value,
-      img2: img[1].value,
-      img3: img[2].value,
       long_desc,
       name,
       price,
@@ -179,6 +205,8 @@ exports.postAddProduct = async (req, res, next) => {
     res.status(201).json({
       message: 'Thêm sản phẩm thành công.',
     });
+
+    await Product.findByIdAndUpdate(result._id, uploaded);
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -203,7 +231,8 @@ exports.deleteProduct = async (req, res, next) => {
     const extractPublicId = url => {
       const parts = url.split('/');
       const fileName = parts[parts.length - 1]; // Lấy phần cuối cùng của URL (tên file)
-      return fileName.split('.')[0]; // Bỏ đuôi file (.jpg, .png)
+      const publicId = fileName.split('.')[0]; // Bỏ đuôi file (.jpg, .png)
+      return 'products/' + publicId;
     };
 
     const deleteImagePromises = [];
@@ -217,8 +246,8 @@ exports.deleteProduct = async (req, res, next) => {
       cloudinary.uploader.destroy(extractPublicId(product.img3))
     );
 
-    await Promise.all(deleteImagePromises);
-    await Product.findByIdAndDelete(productId);
+    await Promise.all(deleteImagePromises); // Xóa ảnh sản phẩm trên Cloudinary
+    await Product.findByIdAndDelete(productId); // Xóa sản phẩm trên MongoDB
 
     res.status(200).json({
       message: 'Xóa sản phẩm thành công.',
