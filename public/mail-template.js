@@ -10,7 +10,7 @@ const MailTemplate = (username, phone, address, products) => {
   const row = products.map(product => {
     return `<tr>
     <td>${product.productId.name}</td>
-    <td><img src="${product.productId.img1}" alt="${
+    <td><img src="${product.productId.img[0]}" alt="${
       product.productId.name
     }" /></td>
     <td>${money(product.productId.price)}</td>

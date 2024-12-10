@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "cross-env NODE_ENV=production MONGO_USER=daominhhoangggg MONGO_PASSWORD=hoangkhoi3 MONGO_DEFAULT_DATABASE=ecommerce EMAIL_USER=mikakaka1102 EMAIL_PASSWORD=updzlmzckvxyekec node app.js",
+    "start": "cross-env NODE_ENV=production MONGO_USER=daominhhoangggg MONGO_PASSWORD=hoangkhoi3 MONGO_DEFAULT_DATABASE=ecommerce EMAIL_USER=mikakaka1102 EMAIL_PASSWORD=updzlmzckvxyekec CLOUD_NAME=dnnxvz5xv CLOUDINARY_API=419627454758379 CLOUDINARY_SECRET=GUdF8WwroPKK1Qn7JN1kfHwikvo node app.js",
     "start-server": "node app.js",
     "start:dev": "nodemon app.js"
   },

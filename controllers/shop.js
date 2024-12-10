@@ -124,7 +124,7 @@ exports.getCarts = async (req, res, next) => {
       idProduct: item.productId._id,
       nameProduct: item.productId.name,
       priceProduct: item.productId.price,
-      img: item.productId.img1,
+      img: item.productId.img[0],
       count: item.count,
     }));
 

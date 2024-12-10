@@ -4,6 +4,9 @@
     "MONGO_PASSWORD": "hoangkhoi3",
     "MONGO_DEFAULT_DATABASE": "ecommerce",
     "EMAIL_USER": "mikakaka1102",
-    "EMAIL_PASSWORD": "updzlmzckvxyekec"
+    "EMAIL_PASSWORD": "updzlmzckvxyekec",
+    "CLOUD_NAME": "dnnxvz5xv",
+    "CLOUDINARY_API": "419627454758379",
+    "CLOUDINARY_SECRET": "GUdF8WwroPKK1Qn7JN1kfHwikvo"
   }
 }
