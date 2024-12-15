@@ -39,4 +39,10 @@ router.delete(
   adminController.deleteProduct
 );
 
+router.get('/weather', isAuth(['Admin']), adminController.getWeather);
+
+router.get('/weather/temperature', adminController.getTemperature);
+
+router.get('/weather/humidity', adminController.getHumidity);
+
 module.exports = router;

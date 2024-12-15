@@ -7,6 +7,7 @@
     "EMAIL_PASSWORD": "updzlmzckvxyekec",
     "CLOUD_NAME": "dnnxvz5xv",
     "CLOUDINARY_API": "419627454758379",
-    "CLOUDINARY_SECRET": "GUdF8WwroPKK1Qn7JN1kfHwikvo"
+    "CLOUDINARY_SECRET": "GUdF8WwroPKK1Qn7JN1kfHwikvo",
+    "OPEN_WEATHER_API": "e7cea0a534874aa33d7c38c571d40588"
   }
 }

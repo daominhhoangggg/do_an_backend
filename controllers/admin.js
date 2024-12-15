@@ -4,6 +4,7 @@ const Order = require('../models/order');
 const bcrypt = require('bcryptjs');
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
+const axios = require('axios');
 
 // Cấu hình Cloudinary
 cloudinary.config({
@@ -230,16 +231,6 @@ exports.deleteProduct = async (req, res, next) => {
     const deleteImagePromises = product.img.map(url =>
       cloudinary.uploader.destroy(extractPublicId(url))
     );
-    // const deleteImagePromises = [];
-    // deleteImagePromises.push(
-    //   cloudinary.uploader.destroy(extractPublicId(product.img1))
-    // );
-    // deleteImagePromises.push(
-    //   cloudinary.uploader.destroy(extractPublicId(product.img2))
-    // );
-    // deleteImagePromises.push(
-    //   cloudinary.uploader.destroy(extractPublicId(product.img3))
-    // );
 
     await Promise.all(deleteImagePromises); // Xóa ảnh sản phẩm trên Cloudinary
     await Product.findByIdAndDelete(productId); // Xóa sản phẩm trên MongoDB
@@ -255,3 +246,137 @@ exports.deleteProduct = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getWeather = async (req, res, next) => {
+  const city = req.query.city;
+  const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=${process.env.OPEN_WEATHER_API}`;
+
+  try {
+    const response = await axios.get(url);
+    const weatherData = response.data;
+
+    const hourlyData = weatherData.list.slice(0, 24);
+
+    const temperatureData = {
+      id: 'Nhiệt độ',
+      data: hourlyData.map((entry, index) => ({
+        x: `${index}`,
+        y: entry.main.temp,
+      })),
+    };
+    const humidityData = {
+      id: 'Độ ẩm',
+      data: hourlyData.map((entry, index) => ({
+        x: `${index}`,
+        y: entry.main.humidity,
+      })),
+    };
+    const pressureData = {
+      id: 'Áp suất',
+      data: hourlyData.map((entry, index) => ({
+        x: `${index}`,
+        y: entry.main.pressure,
+      })),
+    };
+
+    const formattedData = [temperatureData, humidityData, pressureData];
+    res.status(200).json(formattedData);
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+const convertTime = unixTimestamp => {
+  const date = new Date(unixTimestamp * 1000);
+  const options = {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  };
+
+  return new Intl.DateTimeFormat('vi-VN', options).format(date);
+};
+
+exports.getTemperature = async (req, res, next) => {
+  const city = req.query.city;
+  const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&cnt=24&units=metric&appid=${process.env.OPEN_WEATHER_API}`;
+
+  try {
+    const response = await axios.get(url);
+    const weatherData = response.data;
+
+    // const mainTemperature = {
+    //   id: 'Trung bình',
+    //   data: weatherData.list.map((entry, index) => ({
+    //     x: entry.dt_txt.split(' ')[1],
+    //     y: entry.main.temp,
+    //   })),
+    // };
+
+    // const maxTemperature = {
+    //   id: 'Cao nhất',
+    //   data: weatherData.list.map((entry, index) => ({
+    //     x: entry.dt_txt.split(' ')[1],
+    //     y: entry.main.temp_max,
+    //   })),
+    // };
+
+    // const minTemperature = {
+    //   id: 'Thấp nhất',
+    //   data: weatherData.list.map((entry, index) => ({
+    //     x: entry.dt_txt.split(' ')[1],
+    //     y: entry.main.temp_min,
+    //   })),
+    // };
+
+    // const formattedData = [minTemperature, mainTemperature, maxTemperature];
+
+    const formattedData = weatherData.list.map((entry, index) => ({
+      time: entry.dt_txt.split(' ')[1].slice(0, -3),
+      high: entry.main.temp_max,
+      low: entry.main.temp_min,
+      average: entry.main.temp,
+    }));
+
+    res.json(formattedData);
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.getHumidity = async (req, res, next) => {
+  const city = req.query.city;
+  const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&cnt=24&units=metric&appid=${process.env.OPEN_WEATHER_API}`;
+
+  try {
+    const response = await axios.get(url);
+    const weatherData = response.data;
+
+    const humidity = [
+      {
+        id: 'Độ ẩm',
+        data: weatherData.list.map((entry, index) => ({
+          x: entry.dt_txt.split(' ')[1].slice(0, -3),
+          y: entry.main.humidity,
+        })),
+      },
+    ];
+
+    res.json(humidity);
+  } catch (err) {}
+};
+
+exports.getMonthlyRevenue = async (req, res, next) => {};
+
+exports.getProductSales = async (req, res, next) => {};
