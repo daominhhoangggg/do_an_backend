@@ -73,7 +73,7 @@ exports.getHistoryDetail = async (req, res, next) => {
       idProduct: item.productId._id,
       nameProduct: item.productId.name,
       priceProduct: item.productId.price,
-      img: item.productId.img1,
+      img: item.productId.img[0],
       count: item.count,
     }));
 
@@ -247,64 +247,6 @@ exports.deleteProduct = async (req, res, next) => {
   }
 };
 
-exports.getWeather = async (req, res, next) => {
-  const city = req.query.city;
-  const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=${process.env.OPEN_WEATHER_API}`;
-
-  try {
-    const response = await axios.get(url);
-    const weatherData = response.data;
-
-    const hourlyData = weatherData.list.slice(0, 24);
-
-    const temperatureData = {
-      id: 'Nhiệt độ',
-      data: hourlyData.map((entry, index) => ({
-        x: `${index}`,
-        y: entry.main.temp,
-      })),
-    };
-    const humidityData = {
-      id: 'Độ ẩm',
-      data: hourlyData.map((entry, index) => ({
-        x: `${index}`,
-        y: entry.main.humidity,
-      })),
-    };
-    const pressureData = {
-      id: 'Áp suất',
-      data: hourlyData.map((entry, index) => ({
-        x: `${index}`,
-        y: entry.main.pressure,
-      })),
-    };
-
-    const formattedData = [temperatureData, humidityData, pressureData];
-    res.status(200).json(formattedData);
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-const convertTime = unixTimestamp => {
-  const date = new Date(unixTimestamp * 1000);
-  const options = {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    hour12: false,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  };
-
-  return new Intl.DateTimeFormat('vi-VN', options).format(date);
-};
-
 exports.getTemperature = async (req, res, next) => {
   const city = req.query.city;
   const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&cnt=24&units=metric&appid=${process.env.OPEN_WEATHER_API}`;
@@ -374,9 +316,161 @@ exports.getHumidity = async (req, res, next) => {
     ];
 
     res.json(humidity);
-  } catch (err) {}
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
-exports.getMonthlyRevenue = async (req, res, next) => {};
+exports.getMonthlyRevenue = async (req, res, next) => {
+  const month = req.query.month;
+  const year = req.query.year;
+  const limit = parseInt(req.query.limit) || 7;
 
-exports.getProductSales = async (req, res, next) => {};
+  try {
+    const currentDate = new Date();
+    const queryYear = parseInt(year) || currentDate.getFullYear();
+    const queryMonth = parseInt(month) || currentDate.getMonth() + 1;
+
+    const start = new Date(`${queryYear}-${queryMonth}-01`);
+    const end =
+      queryMonth >= 12
+        ? new Date(`${queryYear + 1}-01-01`)
+        : new Date(`${queryYear}-${queryMonth + 1}-01`);
+
+    const result = await Order.aggregate([
+      // Lọc đơn hàng trong tháng
+      {
+        $match: {
+          createdAt: {
+            $gte: start,
+            $lt: end,
+          },
+        },
+      },
+      { $unwind: '$cart' }, // Bóc tách sản phẩm trong giỏ hàng
+
+      // Nhóm theo productId và tính toán số lượng bán và doanh thu
+      {
+        $group: {
+          _id: '$cart.productId',
+          totalSold: { $sum: '$cart.count' },
+          totalRevenue: {
+            $sum: { $multiply: [{ $toDouble: '$total' }, '$cart.count'] },
+          },
+        },
+      },
+      { $sort: { '_id.month': 1, totalSold: -1 } }, // Sắp xếp theo tháng và số lượng bán giảm dần
+      { $limit: limit }, // Lấy 7 sản phẩm đầu tiên
+
+      // Populate tên sản phẩm
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'productData',
+        },
+      },
+
+      // Làm gọn output
+      {
+        $project: {
+          _id: 1,
+          totalSold: 1,
+          totalRevenue: 1,
+          productData: {
+            $arrayElemAt: ['$productData', 0],
+          },
+        },
+      },
+    ]);
+
+    res.status(200).json({ data: result });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.getProductSales = async (req, res, next) => {
+  const year = req.query.year;
+  const limit = parseInt(req.query.limit) || 7;
+
+  try {
+    const currentDate = new Date();
+    const queryYear = parseInt(year) || currentDate.getFullYear();
+
+    const start = new Date(`${queryYear}-01-01`);
+    const end = new Date(`${queryYear + 1}-01-01`);
+
+    const result = await Order.aggregate([
+      // Lọc đơn hàng trong tháng
+      {
+        $match: {
+          createdAt: {
+            $gte: start,
+            $lt: end,
+          },
+        },
+      },
+      { $unwind: '$cart' }, // Bóc tách sản phẩm trong giỏ hàng
+
+      // Trường "month" để nhóm dữ liệu theo tháng
+      {
+        $addFields: {
+          month: { $month: '$createdAt' },
+        },
+      },
+
+      // Nhóm theo productId và tính toán số lượng bán và doanh thu
+      {
+        $group: {
+          _id: {
+            productId: '$cart.productId',
+            month: '$month',
+          },
+          totalSold: { $sum: '$cart.count' },
+          totalRevenue: {
+            $sum: { $multiply: [{ $toDouble: '$total' }, '$cart.count'] },
+          },
+        },
+      },
+      { $sort: { '_id.month': 1, totalSold: -1 } }, // Sắp xếp theo tháng và số lượng bán giảm dần
+      // { $limit: limit }, // Lấy 7 sản phẩm đầu tiên
+
+      // Populate tên sản phẩm
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id.productId',
+          foreignField: '_id',
+          as: 'productData',
+        },
+      },
+
+      // Làm gọn output
+      {
+        $project: {
+          _id: 1,
+          totalSold: 1,
+          totalRevenue: 1,
+          productData: {
+            $arrayElemAt: ['$productData', 0],
+          },
+        },
+      },
+    ]);
+
+    res.status(200).json({ data: result });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};

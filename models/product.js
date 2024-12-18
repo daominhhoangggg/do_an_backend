@@ -10,18 +10,6 @@ const productSchema = new Schema({
     type: [String],
     default: [],
   },
-  // img1: {
-  //   type: String,
-  //   default: '',
-  // },
-  // img2: {
-  //   type: String,
-  //   default: '',
-  // },
-  // img3: {
-  //   type: String,
-  //   default: '',
-  // },
   long_desc: {
     type: String,
     required: true,
