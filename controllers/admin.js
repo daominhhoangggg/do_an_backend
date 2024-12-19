@@ -101,8 +101,8 @@ exports.getAllData = async (req, res, next) => {
 exports.putUpdateUser = async (req, res, next) => {
   const { idUser, fullname, phone, email, password, role } = req.body;
 
-  if (!idUser || !fullname || !email || !role) {
-    const error = new Error('Missing required fields.');
+  if (!idUser || !fullname || !email) {
+    const error = new Error('Thiếu dữ liệu.');
     error.statusCode = 400;
     return next(error);
   }
@@ -110,7 +110,7 @@ exports.putUpdateUser = async (req, res, next) => {
   try {
     const user = await User.findById(idUser);
     if (!user) {
-      const error = new Error('Could not find user.');
+      const error = new Error('Không tìm thấy người dùng.');
       err.statusCode = 404;
       throw error;
     } else {
@@ -121,10 +121,12 @@ exports.putUpdateUser = async (req, res, next) => {
       user.fullname = fullname;
       user.phone = phone;
       user.email = email;
-      user.role = role;
-      const result = await user.save();
+      if (role) user.role = role;
+      await user.save();
 
-      res.status(200).json(result);
+      res
+        .status(200)
+        .json({ message: 'Cập nhật người dùng thành công', success: true });
     }
   } catch (err) {
     if (!err.statusCode) {
@@ -138,7 +140,7 @@ exports.deleteUser = async (req, res, next) => {
   const idUser = req.params.idUser;
 
   if (!idUser) {
-    const error = new Error('User ID is required.');
+    const error = new Error('Thiếu ID người dùng.');
     error.statusCode = 400;
     return next(error);
   } else {
@@ -147,7 +149,7 @@ exports.deleteUser = async (req, res, next) => {
   try {
     await User.findByIdAndDelete(idUser);
     res.status(200).json({
-      message: 'User deleted successfully.',
+      message: 'Xóa người dùng thành công',
       userId: idUser,
     });
   } catch (err) {
@@ -163,19 +165,18 @@ exports.postAddProduct = async (req, res, next) => {
     const { name, price, category, short_desc, long_desc } = req.body;
     const files = req.files;
 
-    if (
-      !name ||
-      !price ||
-      !category ||
-      !short_desc ||
-      !long_desc ||
-      !files ||
-      files.length < 3
-    ) {
-      const error = new Error('Thiếu dữ liệu hoặc không đủ file hình ảnh.');
+    if (!name || !price || !category || !short_desc || !long_desc) {
+      const error = new Error('Thiếu dữ liệu.');
       error.statusCode = 400;
       throw error;
     }
+
+    if (!files || files.length < 3) {
+      const error = new Error('Không đủ file hình ảnh.');
+      error.statusCode = 400;
+      throw error;
+    }
+
     // Tải ảnh lên Cloudinary
     const uploadPromises = files.map(file =>
       uploadToCloudinary(file.buffer).catch(error => null)
@@ -183,7 +184,6 @@ exports.postAddProduct = async (req, res, next) => {
     const results = await Promise.all(uploadPromises);
 
     const img = results.filter(result => result !== null);
-    // console.log(img);
 
     const productData = {
       category,

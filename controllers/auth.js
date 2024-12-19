@@ -39,7 +39,7 @@ exports.postSignUp = async (req, res, next) => {
       const result = await user.save();
 
       res.status(201).json({
-        message: 'Người dùng được tạo thành công.',
+        message: 'Đăng ký thành công.',
         userId: result._id,
       });
     }
@@ -99,7 +99,9 @@ exports.postLogin = async (req, res, next) => {
           // { expiresIn: '1h' }
         );
 
-        res.status(200).json({ user: user, token: token });
+        res
+          .status(200)
+          .json({ message: 'Đăng nhập thành công.', user: user, token: token });
       }
     }
   } catch (err) {
