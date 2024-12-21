@@ -10,21 +10,13 @@ router.get('/histories', isAuth(['Admin']), adminController.getHistoryAPI);
 
 router.get('/histories/all', isAuth(['Admin']), adminController.getAllHistory);
 
-router.get(
-  '/histories/:idOrder',
-  isAuth(['Admin']),
-  adminController.getHistoryDetail
-);
+router.get('/histories/:idOrder', isAuth(['Admin']), adminController.getHistoryDetail);
 
 router.get('/users', isAuth(['Admin']), adminController.getAllData);
 
 router.put('/users/update', isAuth(['Admin']), adminController.putUpdateUser);
 
-router.delete(
-  '/users/delete/:idUser',
-  isAuth(['Admin']),
-  adminController.deleteUser
-);
+router.delete('/users/delete/:idUser', isAuth(['Admin']), adminController.deleteUser);
 
 router.post(
   '/products/add',
@@ -33,18 +25,21 @@ router.post(
   adminController.postAddProduct
 );
 
-router.delete(
-  '/products/delete/:productId',
+router.put(
+  '/products/update/:productId',
   isAuth(['Admin']),
-  adminController.deleteProduct
+  upload.array('files', 5),
+  adminController.putUpdateProduct
 );
 
-router.get('/weather/temperature', adminController.getTemperature);
+router.delete('/products/delete/:productId', isAuth(['Admin']), adminController.deleteProduct);
 
-router.get('/weather/humidity', adminController.getHumidity);
+router.get('/weather/temperature', isAuth(['Admin']), adminController.getTemperature);
 
-router.get('/products/revenue', adminController.getMonthlyRevenue);
+router.get('/weather/humidity', isAuth(['Admin']), adminController.getHumidity);
 
-router.get('/products/sales', adminController.getProductSales);
+router.get('/products/revenue', isAuth(['Admin']), adminController.getMonthlyRevenue);
+
+router.get('/products/sales', isAuth(['Admin']), adminController.getProductSales);
 
 module.exports = router;

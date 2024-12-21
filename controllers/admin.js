@@ -124,9 +124,7 @@ exports.putUpdateUser = async (req, res, next) => {
       if (role) user.role = role;
       await user.save();
 
-      res
-        .status(200)
-        .json({ message: 'Cập nhật người dùng thành công', success: true });
+      res.status(200).json({ message: 'Cập nhật người dùng thành công' });
     }
   } catch (err) {
     if (!err.statusCode) {
@@ -171,7 +169,7 @@ exports.postAddProduct = async (req, res, next) => {
       throw error;
     }
 
-    if (!files || files.length < 3) {
+    if (!files || files.length < 4) {
       const error = new Error('Không đủ file hình ảnh.');
       error.statusCode = 400;
       throw error;
@@ -208,6 +206,86 @@ exports.postAddProduct = async (req, res, next) => {
   }
 };
 
+const extractPublicId = url => {
+  const parts = url.split('/');
+  const fileName = parts[parts.length - 1]; // Lấy phần cuối cùng của URL (tên file)
+  const publicId = fileName.split('.')[0]; // Bỏ đuôi file (.jpg, .png)
+  return 'products/' + publicId;
+};
+
+exports.putUpdateProduct = async (req, res, next) => {
+  try {
+    const productId = req.params.productId;
+    const { name, price, category, short_desc, long_desc, remain } = req.body;
+    const files = req.files;
+
+    if (
+      !productId ||
+      !name ||
+      !price ||
+      !category ||
+      !short_desc ||
+      !long_desc
+    ) {
+      const error = new Error('Thiếu dữ liệu.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if ((!files && !remain) || files.length + remain.length < 4) {
+      const error = new Error('Không đủ file hình ảnh.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      const error = new Error('Không tìm thấy sản phẩm.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Xóa file ảnh cũ
+    if (remain && remain.length !== product.img.length) {
+      const remove = product.img.filter(url => !remain.includes(url));
+      const publicIds = remove.map(url => extractPublicId(url));
+
+      await cloudinary.api.delete_resources(publicIds); // Xóa ảnh sản phẩm trên Cloudinary
+      product.img = remain;
+      console.log(product.img);
+      console.log(remain);
+    }
+
+    // Thêm file ảnh mới nếu có
+    if (files && files.length > 0) {
+      const uploadPromises = files.map(file =>
+        uploadToCloudinary(file.buffer).catch(error => console.log(error))
+      );
+      const results = await Promise.all(uploadPromises);
+
+      const img = results.filter(result => result !== null);
+      product.img = product.img.concat(img);
+    }
+
+    product.category = category;
+    product.name = name;
+    product.price = price;
+    product.short_desc = short_desc;
+    product.long_desc = long_desc;
+
+    await product.save();
+
+    res.status(200).json({
+      message: 'Cập nhật sản phẩm thành công.',
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
 exports.deleteProduct = async (req, res, next) => {
   const productId = req.params.productId;
 
@@ -221,18 +299,15 @@ exports.deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findById(productId);
 
-    const extractPublicId = url => {
-      const parts = url.split('/');
-      const fileName = parts[parts.length - 1]; // Lấy phần cuối cùng của URL (tên file)
-      const publicId = fileName.split('.')[0]; // Bỏ đuôi file (.jpg, .png)
-      return 'products/' + publicId;
-    };
+    // const deleteImagePromises = product.img.map(url =>
+    //   cloudinary.uploader.destroy(extractPublicId(url))
+    // );
 
-    const deleteImagePromises = product.img.map(url =>
-      cloudinary.uploader.destroy(extractPublicId(url))
-    );
+    // await Promise.all(deleteImagePromises); // Xóa ảnh sản phẩm trên Cloudinary
+    // await Product.findByIdAndDelete(productId); // Xóa sản phẩm trên MongoDB
 
-    await Promise.all(deleteImagePromises); // Xóa ảnh sản phẩm trên Cloudinary
+    const publicIds = product.img.map(url => extractPublicId(url));
+    await cloudinary.api.delete_resources(publicIds); // Xóa ảnh sản phẩm trên Cloudinary
     await Product.findByIdAndDelete(productId); // Xóa sản phẩm trên MongoDB
 
     res.status(200).json({
