@@ -33,6 +33,13 @@ const uploadToCloudinary = fileBuffer => {
 exports.getHistoryAPI = async (req, res, next) => {
   const idUser = req.query.idUser;
 
+  // Kiểm tra để đảm bảo người dùng chỉ xem được lịch sử của chính mình
+  if (req.user.userId !== idUser) {
+    const error = new Error('Không có quyền truy cập.');
+    error.statusCode = 401;
+    return next(error);
+  }
+
   try {
     const orders = await Order.find({ idUser: idUser }).populate(
       'cart.productId'
@@ -69,6 +76,14 @@ exports.getHistoryDetail = async (req, res, next) => {
 
   try {
     const order = await Order.findById(idOrder).populate('cart.productId');
+
+    // Kiểm tra để đảm bảo người dùng chỉ xem được đơn của chính mình
+    if (order.idUser !== req.user.userId) {
+      const error = new Error('Không có quyền truy cập.');
+      error.statusCode = 401;
+      throw error;
+    }
+
     const detailCart = order.cart.map(item => ({
       idProduct: item.productId._id,
       nameProduct: item.productId.name,

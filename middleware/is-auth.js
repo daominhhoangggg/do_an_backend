@@ -5,41 +5,49 @@ const User = require('../models/user');
 const verifyToken = promisify(jwt.verify);
 
 const isAuth = allowedRole => {
-  return (req, res, next) => {
-    const authHeader = req.get('Authorization');
-    if (!authHeader) {
-      const error = new Error('Not authenticated.');
-      error.statusCode = 401;
-      throw error;
-    }
-    const token = authHeader.split(' ')[1];
+  return async (req, res, next) => {
+    try {
+      // Kiểm tra Authorization header
+      const authHeader = req.get('Authorization');
+      if (!authHeader) {
+        const error = new Error('Missing Authorization header.');
+        error.statusCode = 401;
+        throw error;
+      }
 
-    verifyToken(token, 'somesupersecretsecret')
-      .then(decodedToken => {
-        return User.findById(decodedToken.userId);
-      })
-      .then(user => {
-        if (!user) {
-          return next();
-        }
-        req.user = user;
-        return user.role;
-      })
-      .then(userRole => {
-        if (allowedRole.includes(userRole)) {
-          next();
-        } else {
-          const error = new Error('Not allowed.');
-          error.statusCode = 401;
-          throw error;
-        }
-      })
-      .catch(err => {
-        if (err.name === 'JsonWebTokenError') {
-          err.statusCode = 401;
-        }
-        next(err);
-      });
+      // Tách token từ header
+      const token = authHeader.split(' ')[1];
+      if (!token || token === '') {
+        const error = new Error('Token not found.');
+        error.statusCode = 401;
+        throw error;
+      }
+
+      // Xác thực token
+      const decodedToken = await verifyToken(token, 'somesupersecretsecret');
+
+      const user = await User.findById(decodedToken.userId);
+      if (!user) {
+        const error = new Error('User not found.');
+        error.statusCode = 401;
+        throw error;
+      }
+
+      // Kiểm tra role
+      if (!allowedRole.includes(user.role)) {
+        const error = new Error('Not allowed.');
+        error.statusCode = 401;
+        throw error;
+      }
+
+      req.user = user;
+      next();
+    } catch (err) {
+      if (!err.statusCode) {
+        err.statusCode = 401;
+      }
+      next(err);
+    }
   };
 };
 
