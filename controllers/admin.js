@@ -18,7 +18,15 @@ cloudinary.config({
 const uploadToCloudinary = fileBuffer => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: 'products' }, // Thư mục trên Cloudinary
+      {
+        folder: 'products',
+        transformation: [
+          {
+            background: 'white', // Đặt nền trắng
+            crop: 'pad', // Đảm bảo ảnh được chèn vào canvas với nền trắng
+          },
+        ],
+      }, // Thư mục trên Cloudinary
       (error, result) => {
         if (error) reject(error);
         else resolve(result.secure_url); // trả về URL của ảnh
