@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
 const axios = require('axios');
+const { mongo, default: mongoose } = require('mongoose');
 
 // Cấu hình Cloudinary
 cloudinary.config({
@@ -39,10 +40,10 @@ const uploadToCloudinary = fileBuffer => {
 };
 
 exports.getHistoryAPI = async (req, res, next) => {
-  const idUser = req.query.idUser;
+  const idUser = mongoose.Types.ObjectId.createFromHexString(req.query.idUser);
 
   // Kiểm tra để đảm bảo người dùng chỉ xem được lịch sử của chính mình
-  if (req.user.userId !== idUser) {
+  if (!req.user._id.equals(idUser)) {
     const error = new Error('Không có quyền truy cập.');
     error.statusCode = 401;
     return next(error);
@@ -86,7 +87,7 @@ exports.getHistoryDetail = async (req, res, next) => {
     const order = await Order.findById(idOrder).populate('cart.productId');
 
     // Kiểm tra để đảm bảo người dùng chỉ xem được đơn của chính mình
-    if (order.idUser !== req.user.userId) {
+    if (!order.idUser.equals(req.user._id)) {
       const error = new Error('Không có quyền truy cập.');
       error.statusCode = 401;
       throw error;
